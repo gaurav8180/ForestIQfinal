@@ -17,7 +17,7 @@ const Login = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await axios.post("http://localhost:5000/api/auth/login", formData);
+            const res = await axios.post("https://forestiqfinal-backend.onrender.com/api/auth/login", formData);
             setMessage(res.data.message);
 
             if (res.data.token) {
