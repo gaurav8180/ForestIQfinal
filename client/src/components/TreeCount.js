@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, Trees, Loader, ArrowRight, X } from 'lucide-react';
-import axios from 'axios';
 
 export default function TreeCount() {
   const [file, setFile] = useState(null);
@@ -11,21 +10,18 @@ export default function TreeCount() {
   const [dragActive, setDragActive] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
 
+  const BACKEND_URL = 'https://forestiqfinal-backend.onrender.com'; // Updated API base URL
+
   const handleDrag = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
+    setDragActive(e.type === "dragenter" || e.type === "dragover");
   }, []);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
@@ -51,15 +47,6 @@ export default function TreeCount() {
     setPreprocessedImage('');
   };
 
-  const loadImageBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
   const handleSubmit = async () => {
     if (!file) return;
 
@@ -73,7 +60,7 @@ export default function TreeCount() {
         setPreprocessedImage(reader.result);
 
         try {
-          const response = await fetch('http://localhost:5000/api/tree-count/detect', {
+          const response = await fetch(`${BACKEND_URL}/api/tree-count/detect`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: reader.result }),
@@ -82,7 +69,6 @@ export default function TreeCount() {
           const data = await response.json();
           setOutput(`${data.predictions.length} trees detected`);
 
-          // Delay calling drawBoundingBoxes until the image is processed and the canvas is rendered
           setTimeout(() => drawBoundingBoxes(data.predictions), 100);
         } catch (error) {
           console.error('Error:', error);
@@ -101,10 +87,9 @@ export default function TreeCount() {
 
   const drawBoundingBoxes = (predictions) => {
     const canvas = document.getElementById('canvas');
-    if (!canvas) return; // Check if canvas exists
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
-    // Check if the imagePreview has been set
     if (!imagePreview) return;
 
     const image = new Image();
@@ -115,8 +100,7 @@ export default function TreeCount() {
       ctx.drawImage(image, 0, 0, image.width, image.height);
       ctx.strokeStyle = 'red';
       ctx.lineWidth = 3;
-      predictions.forEach(prediction => {
-        const { x, y, width, height } = prediction;
+      predictions.forEach(({ x, y, width, height }) => {
         ctx.strokeRect(x - width / 2, y - height / 2, width, height);
       });
     };
@@ -130,9 +114,7 @@ export default function TreeCount() {
             <h1 className="text-5xl font-bold bg-gradient-to-r from-emerald-400 to-blue-500 bg-clip-text text-transparent">
               Tree Counter
             </h1>
-            <p className="mt-2 text-gray-400">
-              Advanced tree detection
-            </p>
+            <p className="mt-2 text-gray-400">Advanced tree detection</p>
           </div>
           <Trees className="h-12 w-12 text-emerald-400" />
         </div>
